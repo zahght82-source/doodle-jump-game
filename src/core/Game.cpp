@@ -22,25 +22,25 @@ Game::Game()
     backgroundSprite->setScale({bgScale, bgScale});
 
     // --- Menu button ---
-    sf::Font &font = fontManager.get(Constants::Paths::FONTS_DIR, Constants::Assets::FONT);
     startButton = std::make_unique<Button>(
-        textureManager.get(Constants::Paths::ASSETS_DIR, Constants::Assets::START_BUTTON), font, "Start");
+        textureManager.get(Constants::Paths::ASSETS_DIR, Constants::Assets::START_BUTTON));
     startButton->setScale({Constants::BUTTON_SCALE, Constants::BUTTON_SCALE});
     startButton->setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f,
-                               static_cast<float>(Constants::WINDOW_HEIGHT) * 0.65f});
+                               static_cast<float>(Constants::WINDOW_HEIGHT) * 0.55f});
 
     // --- Game-over buttons ---
+    // Laid out top-to-bottom with fixed pixel spacing (title -> score ->
+    // restart button -> flavor text -> menu button) so nothing overlaps
+    // regardless of window size.
     gameOverRestartButton = std::make_unique<Button>(
-        textureManager.get(Constants::Paths::ASSETS_DIR, Constants::Assets::RESTART_BUTTON), font, "Restart");
+        textureManager.get(Constants::Paths::ASSETS_DIR, Constants::Assets::RESTART_BUTTON));
     gameOverRestartButton->setScale({Constants::BUTTON_SCALE, Constants::BUTTON_SCALE});
-    gameOverRestartButton->setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f,
-                                         static_cast<float>(Constants::WINDOW_HEIGHT) * 0.62f});
+    gameOverRestartButton->setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f, 400.f});
 
     gameOverMenuButton = std::make_unique<Button>(
-        textureManager.get(Constants::Paths::ASSETS_DIR, Constants::Assets::MENU_BUTTON), font, "Menu");
+        textureManager.get(Constants::Paths::ASSETS_DIR, Constants::Assets::MENU_BUTTON));
     gameOverMenuButton->setScale({Constants::BUTTON_SCALE, Constants::BUTTON_SCALE});
-    gameOverMenuButton->setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f,
-                                      static_cast<float>(Constants::WINDOW_HEIGHT) * 0.78f});
+    gameOverMenuButton->setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f, 540.f});
 }
 
 void Game::run()
@@ -259,19 +259,17 @@ void Game::renderMenu()
     sf::FloatRect titleBounds = title.getLocalBounds();
     title.setOrigin({titleBounds.position.x + titleBounds.size.x / 2.f,
                       titleBounds.position.y + titleBounds.size.y / 2.f});
-    title.setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f,
-                        static_cast<float>(Constants::WINDOW_HEIGHT) * 0.3f});
+    title.setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f, 220.f});
     window.draw(title);
 
     std::ostringstream oss;
     oss << "Best: " << highscoreManager.getHighscore();
-    sf::Text highscoreText(font, oss.str(), 26);
+    sf::Text highscoreText(font, oss.str(), 24);
     highscoreText.setFillColor(Constants::Colors::TEXT_PRIMARY);
     sf::FloatRect hsBounds = highscoreText.getLocalBounds();
     highscoreText.setOrigin({hsBounds.position.x + hsBounds.size.x / 2.f,
                               hsBounds.position.y + hsBounds.size.y / 2.f});
-    highscoreText.setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f,
-                                static_cast<float>(Constants::WINDOW_HEIGHT) * 0.42f});
+    highscoreText.setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f, 300.f});
     window.draw(highscoreText);
 
     startButton->render(window);
@@ -309,8 +307,7 @@ void Game::renderGameOver()
     sf::FloatRect titleBounds = title.getLocalBounds();
     title.setOrigin({titleBounds.position.x + titleBounds.size.x / 2.f,
                       titleBounds.position.y + titleBounds.size.y / 2.f});
-    title.setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f,
-                        static_cast<float>(Constants::WINDOW_HEIGHT) * 0.2f});
+    title.setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f, 160.f});
     window.draw(title);
 
     std::ostringstream oss;
@@ -319,25 +316,23 @@ void Game::renderGameOver()
     {
         oss << " (NEW!)";
     }
-    sf::Text scoreText(font, oss.str(), 22);
+    sf::Text scoreText(font, oss.str(), 20);
     scoreText.setFillColor(Constants::Colors::TEXT_PRIMARY);
     sf::FloatRect scoreBounds = scoreText.getLocalBounds();
     scoreText.setOrigin({scoreBounds.position.x + scoreBounds.size.x / 2.f,
                           scoreBounds.position.y + scoreBounds.size.y / 2.f});
-    scoreText.setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f,
-                            static_cast<float>(Constants::WINDOW_HEIGHT) * 0.3f});
+    scoreText.setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f, 240.f});
     window.draw(scoreText);
 
     gameOverRestartButton->render(window);
 
-    sf::Text flavorText(font, Constants::RESTART_FLAVOR_TEXT, 16);
+    sf::Text flavorText(font, Constants::RESTART_FLAVOR_TEXT, 14);
     flavorText.setFillColor(Constants::Colors::TEXT_PRIMARY);
     flavorText.setStyle(sf::Text::Italic);
     sf::FloatRect flavorBounds = flavorText.getLocalBounds();
     flavorText.setOrigin({flavorBounds.position.x + flavorBounds.size.x / 2.f,
                            flavorBounds.position.y + flavorBounds.size.y / 2.f});
-    flavorText.setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f,
-                             static_cast<float>(Constants::WINDOW_HEIGHT) * 0.69f});
+    flavorText.setPosition({static_cast<float>(Constants::WINDOW_WIDTH) / 2.f, 460.f});
     window.draw(flavorText);
 
     gameOverMenuButton->render(window);

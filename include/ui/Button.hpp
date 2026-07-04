@@ -1,12 +1,14 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 
-// A clickable button: a sprite (from a button texture asset) with a
-// centered text label on top. Used by the Menu and GameOver screens.
+// A clickable button backed by a sprite. The button texture assets
+// (start_button.png, restart_button.png, menu_button.png) already have
+// their label drawn into the image, so no separate text overlay is
+// needed or drawn here.
 class Button
 {
 public:
-    Button(const sf::Texture &texture, const sf::Font &font, const std::string &label, unsigned int characterSize = 28);
+    explicit Button(const sf::Texture &texture);
 
     void setPosition(sf::Vector2f position);
     void setScale(sf::Vector2f scale);
@@ -21,5 +23,4 @@ public:
 
 private:
     sf::Sprite sprite;
-    sf::Text text;
 };

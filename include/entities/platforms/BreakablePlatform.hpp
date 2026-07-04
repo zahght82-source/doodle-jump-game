@@ -16,4 +16,5 @@ public:
 
 private:
     bool broken = false;
+    float distanceFallen = 0.f; // tracked since breaking, not tied to any absolute world Y
 };

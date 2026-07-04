@@ -10,13 +10,18 @@ void BreakablePlatform::update(float deltaTime)
 {
     if (broken)
     {
+        float fallStep = Constants::BREAKABLE_FALL_SPEED * deltaTime;
         sf::Vector2f pos = getPosition();
-        pos.y += Constants::BREAKABLE_FALL_SPEED * deltaTime;
+        pos.y += fallStep;
         setPosition(pos);
 
-        // Once it has fallen well past the bottom of the screen it can
-        // be removed by the platform manager.
-        if (pos.y > static_cast<float>(Constants::WINDOW_HEIGHT) + Constants::PLATFORM_HEIGHT)
+        distanceFallen += fallStep;
+
+        // Once it has fallen well past a full screen height it is surely
+        // off-screen and can be removed by the platform manager. Using
+        // an accumulated distance (rather than an absolute world Y)
+        // keeps this correct no matter how far the view has scrolled up.
+        if (distanceFallen > static_cast<float>(Constants::WINDOW_HEIGHT))
         {
             expired = true;
         }
@@ -26,8 +31,12 @@ void BreakablePlatform::update(float deltaTime)
 float BreakablePlatform::onPlayerLand()
 {
     broken = true;
-    solid = false; // no longer supports the player after this landing
-    return 0.f;     // no bounce -- player falls with it
+    solid = false; // won't support the player again after this landing
+    // Still gives a normal bounce -- the player jumps off it exactly like
+    // a solid platform, and only afterwards does it crumble and fall
+    // away. This guarantees the player can always reach the platform
+    // above, independent of this platform's later destruction.
+    return Constants::JUMP_VELOCITY;
 }
 
 bool BreakablePlatform::isBroken() const
