@@ -16,9 +16,9 @@ namespace Constants
     constexpr float SPRING_JUMP_VELOCITY = -1000.f; // px/s, boosted jump velocity from a spring
     constexpr float PLAYER_MOVE_SPEED = 300.f; // px/s, horizontal speed
     // Max jump height = v^2 / (2*g) = 650^2 / 1800 ~= 235 px.
-    // Platform gaps are kept well under this (see PLATFORM_MAX_GAP_Y) so
-    // the player can always reach the next platform even accounting for
-    // the discrete per-frame integration step.
+    // BAND_HEIGHT (below) is kept comfortably under this so a single
+    // jump can always cross one band, even accounting for the discrete
+    // per-frame integration step.
 
     // ---- Player ----
     constexpr float PLAYER_WIDTH = 50.f;
@@ -31,23 +31,34 @@ namespace Constants
     constexpr float MOVING_PLATFORM_SPEED = 100.f; // px/s horizontal speed
     constexpr float BREAKABLE_FALL_SPEED = 250.f;  // px/s, speed the broken platform falls at
 
-    // Vertical gap between consecutively spawned platforms (must always be
-    // reachable given JUMP_VELOCITY and GRAVITY -- see reachability check).
-    constexpr float PLATFORM_MIN_GAP_Y = 70.f;
-    constexpr float PLATFORM_MAX_GAP_Y = 160.f;
+    // The world is divided into vertical bands of this height. Every
+    // band is guaranteed to contain at least one solid (non-Breakable)
+    // platform, so a single jump (max height ~235px, see above) can
+    // always cover one band -- guaranteeing a way up as long as the
+    // player hasn't already lost. Kept comfortably under the theoretical
+    // max jump height as a safety margin.
+    constexpr float BAND_HEIGHT = 180.f;
 
-    // How many platforms to keep alive in the world at once.
-    constexpr int INITIAL_PLATFORM_COUNT = 8;
+    // How many bands to keep populated above the player at once.
+    constexpr int INITIAL_BAND_COUNT = 6;
 
-    // ---- Spawn probabilities (weights, not required to sum to 1) ----
-    constexpr double WEIGHT_NORMAL_PLATFORM = 0.60;
-    constexpr double WEIGHT_MOVING_PLATFORM = 0.20;
-    constexpr double WEIGHT_BREAKABLE_PLATFORM = 0.20;
+    // ---- Spawn probabilities ----
+    // Chance the guaranteed solid platform in a band is Moving rather
+    // than Normal (the rest of the time it's Normal).
+    constexpr double MOVING_PLATFORM_CHANCE = 0.30;
+    // Independent chance that a band also spawns a bonus Breakable
+    // platform (in addition to its guaranteed solid platform).
+    constexpr double BREAKABLE_BONUS_CHANCE = 0.35;
     constexpr double SPRING_SPAWN_CHANCE = 0.15; // chance a Normal platform also gets a spring
 
     // ---- Spring ----
     constexpr float SPRING_WIDTH = 24.f;
     constexpr float SPRING_HEIGHT = 24.f;
+    // Visual squash effect played when the player bounces off a spring
+    // (the provided sprite has only one frame, so this is simulated with
+    // a vertical scale animation rather than swapping to a second image).
+    constexpr float SPRING_COMPRESS_DURATION = 0.15f;   // seconds for the squash to recover
+    constexpr float SPRING_COMPRESSED_SCALE_Y = 0.5f;   // vertical scale at full compression
 
     // ---- Scroll / View ----
     constexpr float SCROLL_TRIGGER_RATIO = 0.5f; // once player crosses top half, view scrolls

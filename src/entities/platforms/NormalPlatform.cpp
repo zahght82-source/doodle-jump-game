@@ -35,6 +35,10 @@ float NormalPlatform::onPlayerLand()
 
 float NormalPlatform::onSpringLand()
 {
+    if (spring)
+    {
+        spring->compress();
+    }
     return Constants::SPRING_JUMP_VELOCITY;
 }
 

@@ -32,11 +32,12 @@ float BreakablePlatform::onPlayerLand()
 {
     broken = true;
     solid = false; // won't support the player again after this landing
-    // Still gives a normal bounce -- the player jumps off it exactly like
-    // a solid platform, and only afterwards does it crumble and fall
-    // away. This guarantees the player can always reach the platform
-    // above, independent of this platform's later destruction.
-    return Constants::JUMP_VELOCITY;
+    // Per spec: landing on a Breakable platform does NOT bounce the
+    // player. The platform starts falling and drags the player down
+    // with it (handled by the collision system attaching the player's
+    // vertical velocity to the platform's fall speed). The player can
+    // still move left/right to escape onto a neighboring solid platform.
+    return Constants::BREAKABLE_FALL_SPEED;
 }
 
 bool BreakablePlatform::isBroken() const

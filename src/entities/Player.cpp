@@ -14,7 +14,7 @@ void Player::update(float deltaTime)
     // crossing-based collision check in CollisionHandler.
     previousBottom = getBounds().position.y + getBounds().size.y;
 
-    // --- Horizontal movement ---
+    // --- Horizontal movement (always allowed, even while dragged down) ---
     velocity.x = horizontalInput * Constants::PLAYER_MOVE_SPEED;
 
     if (horizontalInput < 0.f)
@@ -26,8 +26,15 @@ void Player::update(float deltaTime)
         switchTexture(FacingDirection::Right);
     }
 
-    // --- Vertical movement (gravity) ---
-    velocity.y += Constants::GRAVITY * deltaTime;
+    // --- Vertical movement ---
+    // Per spec 5.2: while being dragged down by a broken platform,
+    // gravity is suspended and the player instead falls at exactly the
+    // platform's fall speed (velocity.y was already set to that value
+    // by CollisionHandler via enterDraggedState/setVerticalVelocity).
+    if (!isDragged)
+    {
+        velocity.y += Constants::GRAVITY * deltaTime;
+    }
 
     sf::Vector2f pos = getPosition();
     pos.x += velocity.x * deltaTime;
@@ -63,6 +70,22 @@ void Player::stopHorizontal()
 void Player::setVerticalVelocity(float velocityY)
 {
     velocity.y = velocityY;
+}
+
+void Player::enterDraggedState(float fallSpeed)
+{
+    isDragged = true;
+    velocity.y = fallSpeed;
+}
+
+void Player::leaveDraggedState()
+{
+    isDragged = false;
+}
+
+bool Player::isBeingDragged() const
+{
+    return isDragged;
 }
 
 bool Player::isFalling() const

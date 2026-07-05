@@ -3,39 +3,33 @@
 #include "entities/platforms/MovingPlatform.hpp"
 #include "entities/platforms/BreakablePlatform.hpp"
 #include "utils/Constants.hpp"
-#include <algorithm>
+#include <cmath>
 
 PlatformManager::PlatformManager(ResourceManager<sf::Texture> &textures, unsigned int windowWidth, unsigned int windowHeight)
     : textures(textures),
       windowWidth(windowWidth),
       windowHeight(windowHeight),
-      typeDistribution({Constants::WEIGHT_NORMAL_PLATFORM,
-                         Constants::WEIGHT_MOVING_PLATFORM,
-                         Constants::WEIGHT_BREAKABLE_PLATFORM}),
-      gapDistribution(Constants::PLATFORM_MIN_GAP_Y, Constants::PLATFORM_MAX_GAP_Y),
+      movingVsNormal(Constants::MOVING_PLATFORM_CHANCE),
+      breakableBonusRoll(Constants::BREAKABLE_BONUS_CHANCE),
       springDistribution(Constants::SPRING_SPAWN_CHANCE)
 {
-    std::uniform_real_distribution<float> xDist(
-        Constants::PLATFORM_WIDTH / 2.f,
-        static_cast<float>(windowWidth) - Constants::PLATFORM_WIDTH / 2.f);
-
     // The very first platform is guaranteed to be a plain, solid
     // NormalPlatform (no spring) directly beneath the player's start
     // position, so the player never spawns with nothing to land on.
     float startX = static_cast<float>(windowWidth) / 2.f;
-    float y = static_cast<float>(windowHeight) * Constants::PLAYER_START_Y_RATIO + Constants::PLAYER_HEIGHT;
+    float startY = static_cast<float>(windowHeight) * Constants::PLAYER_START_Y_RATIO + Constants::PLAYER_HEIGHT;
     Platform *firstPlatform = new NormalPlatform(
         textures.get(Constants::Paths::ASSETS_DIR, Constants::Assets::NORMAL_PLATFORM));
-    firstPlatform->setPosition({startX, y});
+    firstPlatform->setPosition({startX, startY});
     platforms.push_back(firstPlatform);
-    y -= gapDistribution(rng);
 
-    // Remaining initial platforms are randomized as usual.
-    for (int i = 1; i < Constants::INITIAL_PLATFORM_COUNT; ++i)
+    lastSolidY = startY;
+    lastSolidX = startX;
+
+    // Populate enough initial steps above the starting platform.
+    for (int i = 0; i < Constants::INITIAL_BAND_COUNT; ++i)
     {
-        float x = xDist(rng);
-        platforms.push_back(spawnPlatform(x, y));
-        y -= gapDistribution(rng);
+        spawnNextStep();
     }
 }
 
@@ -47,20 +41,16 @@ PlatformManager::~PlatformManager()
     }
 }
 
-PlatformManager::PlatformType PlatformManager::pickRandomType()
+Platform *PlatformManager::createSolidPlatform(float x, float y)
 {
-    int index = typeDistribution(rng);
-    return static_cast<PlatformType>(index);
-}
-
-Platform *PlatformManager::spawnPlatform(float x, float y)
-{
-    PlatformType type = pickRandomType();
-    Platform *platform = nullptr;
-
-    switch (type)
+    Platform *platform;
+    if (movingVsNormal(rng))
     {
-    case PlatformType::Normal:
+        platform = new MovingPlatform(
+            textures.get(Constants::Paths::ASSETS_DIR, Constants::Assets::MOVING_PLATFORM),
+            windowWidth);
+    }
+    else
     {
         bool withSpring = springDistribution(rng);
         const sf::Texture *springTex = withSpring
@@ -69,31 +59,80 @@ Platform *PlatformManager::spawnPlatform(float x, float y)
         platform = new NormalPlatform(
             textures.get(Constants::Paths::ASSETS_DIR, Constants::Assets::NORMAL_PLATFORM),
             springTex);
-        break;
     }
-    case PlatformType::Moving:
-        platform = new MovingPlatform(
-            textures.get(Constants::Paths::ASSETS_DIR, Constants::Assets::MOVING_PLATFORM),
-            windowWidth);
-        break;
-    case PlatformType::Breakable:
-        platform = new BreakablePlatform(
-            textures.get(Constants::Paths::ASSETS_DIR, Constants::Assets::BROKEN_PLATFORM));
-        break;
-    }
-
     platform->setPosition({x, y});
     return platform;
 }
 
-float PlatformManager::highestPlatformY() const
+Platform *PlatformManager::createBreakablePlatform(float x, float y)
 {
-    float minY = static_cast<float>(windowHeight);
-    for (const Platform *platform : platforms)
+    Platform *platform = new BreakablePlatform(
+        textures.get(Constants::Paths::ASSETS_DIR, Constants::Assets::BROKEN_PLATFORM));
+    platform->setPosition({x, y});
+    return platform;
+}
+
+void PlatformManager::spawnNextStep()
+{
+    std::uniform_real_distribution<float> xDist(
+        Constants::PLATFORM_WIDTH / 2.f,
+        static_cast<float>(windowWidth) - Constants::PLATFORM_WIDTH / 2.f);
+
+    float previousSolidY = lastSolidY;
+    float previousSolidX = lastSolidX;
+
+    // The next solid platform is placed somewhere between just above
+    // lastSolidY and exactly BAND_HEIGHT above it. Measuring directly
+    // from lastSolidY (an actual platform position), rather than from a
+    // fixed grid boundary, is what guarantees this exact distance is
+    // always within one jump -- regardless of where the previous solid
+    // platform happened to land.
+    std::uniform_real_distribution<float> solidGapDist(Constants::PLATFORM_HEIGHT * 2.f, Constants::BAND_HEIGHT);
+    float newSolidX = xDist(rng);
+    float newSolidY = previousSolidY - solidGapDist(rng);
+    platforms.push_back(createSolidPlatform(newSolidX, newSolidY));
+    lastSolidY = newSolidY;
+    lastSolidX = newSolidX;
+
+    // Independent bonus: a Breakable may also spawn strictly between the
+    // previous and new solid platform (with padding so it never
+    // vertically overlaps either one), purely for variety. Since the
+    // solid-to-solid guarantee above doesn't depend on it, this can
+    // never block progress no matter where it lands or what happens to
+    // it. No two platforms should ever overlap or intersect, so its X is
+    // also kept clear of both solid platforms' horizontal extents when
+    // they'd otherwise collide at the same height band.
+    if (breakableBonusRoll(rng))
     {
-        minY = std::min(minY, platform->getPosition().y);
+        float safeTop = newSolidY + Constants::PLATFORM_HEIGHT * 1.5f;
+        float safeBottom = previousSolidY - Constants::PLATFORM_HEIGHT * 1.5f;
+
+        // Only place it if there's actually room between the two solid
+        // platforms after applying the padding above.
+        if (safeTop < safeBottom)
+        {
+            std::uniform_real_distribution<float> breakableYDist(safeTop, safeBottom);
+            float breakableY = breakableYDist(rng);
+
+            // Pick an X far enough from both solid platforms' X to avoid
+            // any horizontal overlap, retrying a few times before giving
+            // up (in the rare case the screen is too narrow to avoid it,
+            // skipping the bonus platform is preferable to overlapping).
+            const int maxAttempts = 5;
+            for (int attempt = 0; attempt < maxAttempts; ++attempt)
+            {
+                float candidateX = xDist(rng);
+                float minSeparation = Constants::PLATFORM_WIDTH * 1.1f;
+                bool clearOfNew = std::abs(candidateX - newSolidX) >= minSeparation;
+                bool clearOfPrevious = std::abs(candidateX - previousSolidX) >= minSeparation;
+                if (clearOfNew && clearOfPrevious)
+                {
+                    platforms.push_back(createBreakablePlatform(candidateX, breakableY));
+                    break;
+                }
+            }
+        }
     }
-    return minY;
 }
 
 void PlatformManager::update(float deltaTime)
@@ -133,18 +172,12 @@ void PlatformManager::refresh(float viewTop)
         }
     }
 
-    // Spawn new platforms above the current highest one until we have
-    // enough to fill the visible area plus a buffer above it.
+    // Keep spawning steps above the last solid platform until we have
+    // enough height covered above the current view.
     float targetTop = viewTop - static_cast<float>(windowHeight) * 0.5f;
-    std::uniform_real_distribution<float> xDist(
-        Constants::PLATFORM_WIDTH / 2.f,
-        static_cast<float>(windowWidth) - Constants::PLATFORM_WIDTH / 2.f);
-
-    while (highestPlatformY() > targetTop)
+    while (lastSolidY > targetTop)
     {
-        float newY = highestPlatformY() - gapDistribution(rng);
-        float newX = xDist(rng);
-        platforms.push_back(spawnPlatform(newX, newY));
+        spawnNextStep();
     }
 }
 

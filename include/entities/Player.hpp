@@ -25,6 +25,15 @@ public:
     // or spring landing).
     void setVerticalVelocity(float velocityY);
 
+    // Per spec 5.2: landing on a Breakable platform does not bounce the
+    // player -- instead the player is dragged down together with the
+    // falling platform (gravity is suspended while this is active) until
+    // either the player escapes onto a neighboring solid platform
+    // (leaveDraggedState()) or falls off the bottom of the screen.
+    void enterDraggedState(float fallSpeed);
+    void leaveDraggedState();
+    bool isBeingDragged() const;
+
     bool isFalling() const; // true when moving downward (for collision checks)
     float getVerticalVelocity() const;
 
@@ -49,6 +58,7 @@ private:
 
     sf::Vector2f velocity{0.f, 0.f};
     float horizontalInput = 0.f;
+    bool isDragged = false; // true while falling together with a broken platform
 
     float maxHeightReached = 0.f; // smallest (highest) y the player has reached; starts unset
     bool maxHeightInitialized = false;

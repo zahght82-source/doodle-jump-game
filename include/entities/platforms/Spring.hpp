@@ -14,4 +14,12 @@ public:
 
     // Positions the spring relative to the platform's top-center.
     void attachTo(sf::Vector2f platformPosition, sf::Vector2f platformSize);
+
+    // Triggers the compressed ("squashed") visual, played briefly when
+    // the player bounces off this spring, then automatically returns to
+    // the normal stretched look.
+    void compress();
+
+private:
+    float compressTimer = 0.f; // seconds remaining in the compressed visual
 };
